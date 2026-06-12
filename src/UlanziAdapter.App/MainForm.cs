@@ -369,7 +369,8 @@ internal sealed class MainForm : Form
 
         ApplyPreset(binding, preset);
         EnsurePresetLayerExists(selection, preset);
-        SaveConfigAndRestart($"Preset '{preset.Name}' applied to {selection.LayerName}.{selection.ControlName}.");
+        var hidMessage = ApplyHidMappingFromUi(selection, binding);
+        SaveConfigAndRestart($"Preset '{preset.Name}' saved for {selection.LayerName}.{selection.ControlName}. {hidMessage}");
     }
 
     private void EnsurePresetLayerExists(BindingSelection selection, ActionPreset preset)
@@ -448,7 +449,42 @@ internal sealed class MainForm : Form
         binding.Text = null;
         binding.Mouse = null;
         binding.Layer = null;
-        SaveConfigAndRestart($"Shortcut '{chord}' saved for {selection.LayerName}.{selection.ControlName}.");
+        var hidMessage = ApplyHidMappingFromUi(selection, binding);
+        SaveConfigAndRestart($"Shortcut '{chord}' saved for {selection.LayerName}.{selection.ControlName}. {hidMessage}");
+    }
+
+    private string ApplyHidMappingFromUi(BindingSelection selection, BindingConfig binding)
+    {
+        if (_config is null || !_config.Hid.ApplyMappingsFromUi)
+        {
+            return "Direct HID mapping disabled.";
+        }
+
+        var build = HidMappingReportBuilder.Build(_config.Hid, selection.LayerName, selection.ControlName, binding);
+        if (!build.Success || build.Report is null)
+        {
+            _captureStatusLabel.Text = build.Message;
+            Log("Direct HID mapping not applied: " + build.Message);
+            return "Direct HID mapping not applied: " + build.Message;
+        }
+
+        var hidConfig = new HidConfig
+        {
+            Selector = _config.Hid.Selector,
+            Reports = new List<HidReportConfig> { build.Report }
+        };
+
+        foreach (var result in _hid.ApplyReports(hidConfig))
+        {
+            Log((result.Success ? "Direct HID mapping: " : "Direct HID mapping error: ") + result.Message);
+            if (!result.Success)
+            {
+                _captureStatusLabel.Text = result.Message;
+                return "Direct HID mapping failed: " + result.Message;
+            }
+        }
+
+        return "Direct HID mapping applied.";
     }
 
     private void SaveConfigAndRestart(string logMessage)

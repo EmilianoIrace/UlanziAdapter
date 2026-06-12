@@ -48,9 +48,13 @@ public sealed class HidConfig
 {
     public bool ApplyOnStart { get; set; }
 
+    public bool ApplyMappingsFromUi { get; set; } = true;
+
     public HidDeviceSelectorConfig Selector { get; set; } = new();
 
     public List<HidReportConfig> Reports { get; set; } = new();
+
+    public List<HidMappingTemplateConfig> MappingTemplates { get; set; } = new();
 }
 
 public sealed class HidDeviceSelectorConfig
@@ -71,6 +75,23 @@ public sealed class HidDeviceSelectorConfig
 public sealed class HidReportConfig
 {
     public bool Enabled { get; set; } = true;
+
+    public string Type { get; set; } = "feature";
+
+    public string Bytes { get; set; } = string.Empty;
+
+    public int DelayAfterMs { get; set; }
+
+    public string? Description { get; set; }
+}
+
+public sealed class HidMappingTemplateConfig
+{
+    public bool Enabled { get; set; } = true;
+
+    public string Layer { get; set; } = "*";
+
+    public string Control { get; set; } = "*";
 
     public string Type { get; set; } = "feature";
 

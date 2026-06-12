@@ -118,7 +118,7 @@ To record a keyboard shortcut:
 1. Select a row.
 2. Click **Capture Shortcut**.
 3. Press the desired key or key combination.
-4. The app saves the shortcut to JSON and reloads the mapping.
+4. The app saves the shortcut to JSON, tries to apply the matching HID report template, and reloads the mapping.
 
 To use a standard action:
 
@@ -134,6 +134,8 @@ Available preset groups include:
 - zoom in/out;
 - media controls;
 - layer toggle and momentary layer actions.
+
+Direct HID behavior from this UI requires `hid.mappingTemplates`. If no matching template exists for the selected layer/control, the app saves the JSON runtime mapping but logs that direct HID mapping was not applied.
 
 ## Configuration
 
@@ -207,6 +209,17 @@ The source-level fix is to configure the D100H itself so it emits different HID 
         "delayAfterMs": 50,
         "description": "Example placeholder report"
       }
+    ],
+    "mappingTemplates": [
+      {
+        "enabled": false,
+        "layer": "default",
+        "control": "dialClockwise",
+        "type": "feature",
+        "bytes": "00 00 {keyboardModifier} {keyboardKey}",
+        "delayAfterMs": 50,
+        "description": "Placeholder template; replace with real D100H vendor report format"
+      }
     ]
   }
 }
@@ -218,6 +231,18 @@ Report types:
 - `output`: sent with `WriteFile` to the HID device.
 
 Important: the `bytes` value must include the report ID as the first byte. The sample does not include real D100H profile reports because the vendor protocol has not been documented in this repository yet.
+
+`mappingTemplates` are used by the **Set Buttons** UI. A template matches a layer/control and turns the selected UI action into report bytes. Supported placeholders:
+
+| Placeholder | Meaning |
+| --- | --- |
+| `{keyboardModifier}` | USB HID keyboard modifier byte for `Ctrl`, `Shift`, `Alt`, `Win`. |
+| `{keyboardKey}` | USB HID keyboard usage for the main key. |
+| `{consumerUsageLo}` | Low byte of a consumer-control usage such as media or volume. |
+| `{consumerUsageHi}` | High byte of a consumer-control usage. |
+| `{mouseWheelVertical}` | `01` for up, `FF` for down, else `00`. |
+| `{mouseWheelHorizontal}` | `01` for right, `FF` for left, else `00`. |
+| `{zero}` | `00`. |
 
 Use **List HID** in the app to find the D100H VID/PID/path. To discover the actual report bytes, capture USB/HID traffic from Ulanzi Studio while changing a profile, then copy the relevant report payloads into `hid.reports`.
 

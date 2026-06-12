@@ -49,6 +49,7 @@ Side right bottom    -> Ctrl+Z
 - Standard action presets for mouse wheel, navigation, editing, zoom, media, and layer actions.
 - HID device enumeration from the UI.
 - Experimental raw HID feature/output report application from JSON.
+- Set Buttons now attempts direct HID mapping through `hid.mappingTemplates` whenever a shortcut or preset is saved.
 - Windows startup registration.
 - Self-contained build script.
 
@@ -57,7 +58,7 @@ Side right bottom    -> Ctrl+Z
 - The D100H has not been physically tested in this environment on Windows.
 - Input suppression is gesture-based, not device-based.
 - Common source gestures such as `Ctrl+C` can conflict with a normal keyboard while the app is active.
-- Direct HID profile application requires the actual Ulanzi vendor report bytes. These are not known yet.
+- Direct HID profile application requires the actual Ulanzi vendor report bytes or mapping templates. These are not known yet.
 - If the D100H emits HID consumer reports that are not translated into virtual keys on some Windows machines, Raw Input diagnostics will still be needed for runtime observation.
 
 ## Recommended Next Steps

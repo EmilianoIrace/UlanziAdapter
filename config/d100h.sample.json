@@ -18,6 +18,7 @@
   },
   "hid": {
     "applyOnStart": false,
+    "applyMappingsFromUi": true,
     "selector": {
       "devicePath": null,
       "vendorId": null,
@@ -26,7 +27,8 @@
       "usage": null,
       "productContains": "Ulanzi"
     },
-    "reports": []
+    "reports": [],
+    "mappingTemplates": []
   },
   "bindings": {
     "default": {
