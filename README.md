@@ -236,6 +236,8 @@ UlanziAdapter currently uses a low-level keyboard hook. Windows does not expose 
 
 Practical consequence: media keys and volume events are usually safe to remap, but source inputs such as `Ctrl+C` may also match the same shortcut from a normal keyboard while the app is running.
 
+For `VolumeUp`, `VolumeDown`, and `VolumeMute` sources, the app also applies a volume guard: when those inputs are remapped to a non-volume action, it snapshots the current Windows audio endpoint volume/mute state and restores it immediately after the action. This prevents the D100H dial from changing system volume while it is being used for scroll, navigation, zoom, or layer switching.
+
 Mitigations:
 
 - keep `suppressOriginalInput` enabled only when needed;

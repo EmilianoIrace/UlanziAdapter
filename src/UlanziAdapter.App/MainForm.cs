@@ -15,6 +15,7 @@ internal sealed class MainForm : Form
     private readonly SettingsStore _settingsStore = new();
     private readonly StartupRegistration _startupRegistration = new();
     private readonly SendInputKeyboardOutput _output = new();
+    private readonly AudioEndpointVolumeController _audioVolume = new();
     private readonly NotifyIcon _notifyIcon;
 
     private readonly TextBox _configPathTextBox = new();
@@ -773,12 +774,18 @@ internal sealed class MainForm : Form
         }
 
         BindingExecution execution;
+        AudioVolumeSnapshot? volumeSnapshot = null;
         try
         {
             execution = _engine.Handle(input);
             if (!execution.Handled)
             {
                 return false;
+            }
+
+            if (ShouldGuardLeakedVolumeInput(input, execution))
+            {
+                volumeSnapshot = _audioVolume.TryCapture();
             }
 
             _output.ReleaseModifiers(input.Modifiers);
@@ -797,9 +804,19 @@ internal sealed class MainForm : Form
             {
                 _output.SendMouseWheel(execution.MouseWheel, execution.MouseWheelClicks);
             }
+
+            if (volumeSnapshot is not null)
+            {
+                _audioVolume.RestoreSoon(volumeSnapshot);
+            }
         }
         catch (Exception ex)
         {
+            if (volumeSnapshot is not null)
+            {
+                _audioVolume.RestoreSoon(volumeSnapshot);
+            }
+
             BeginInvokeSafe(() => Log("Mapping error: " + ex.Message));
             return false;
         }
@@ -815,6 +832,29 @@ internal sealed class MainForm : Form
         });
 
         return _config.Behavior.SuppressOriginalInput;
+    }
+
+    private static bool ShouldGuardLeakedVolumeInput(InputEvent input, BindingExecution execution)
+    {
+        if (input.NormalizedKey is not ("VolumeUp" or "VolumeDown" or "VolumeMute"))
+        {
+            return false;
+        }
+
+        return !SendsVolumeCommand(execution.Send);
+    }
+
+    private static bool SendsVolumeCommand(string? send)
+    {
+        if (string.IsNullOrWhiteSpace(send))
+        {
+            return false;
+        }
+
+        return send
+            .Split(new[] { '+', ';' }, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
+            .Select(KeyName.Normalize)
+            .Any(key => key is "VolumeUp" or "VolumeDown" or "VolumeMute");
     }
 
     private void UpdateStartupRegistration()
