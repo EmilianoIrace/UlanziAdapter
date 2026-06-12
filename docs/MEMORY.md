@@ -14,6 +14,8 @@ Build a minimal Windows executable for the Ulanzi Studio D100H that loads JSON m
 - Input source: low-level keyboard hook.
 - Output: Win32 `SendInput`.
 - Direct HID: Win32 SetupAPI/HID P/Invoke in `UlanziAdapter.Windows.Hid`.
+- Driver filter: experimental KMDF HID filter in `drivers/UlanziAdapter.Filter`.
+- Driver control: `DriverFilterClient` sends IOCTL rules to `\\.\UlanziAdapterFilter`.
 - Config: versioned JSON.
 - User config location: `%AppData%\UlanziAdapter\d100h.json`.
 - Build bootstrap: `build.ps1` downloads a local .NET SDK into `.tools\dotnet` when needed.
@@ -50,6 +52,7 @@ Side right bottom    -> Ctrl+Z
 - HID device enumeration from the UI.
 - Experimental raw HID feature/output report application from JSON.
 - Set Buttons now attempts direct HID mapping through `hid.mappingTemplates` whenever a shortcut or preset is saved.
+- Experimental driver filter rule application from JSON.
 - Windows startup registration.
 - Self-contained build script.
 
@@ -59,6 +62,8 @@ Side right bottom    -> Ctrl+Z
 - Input suppression is gesture-based, not device-based.
 - Common source gestures such as `Ctrl+C` can conflict with a normal keyboard while the app is active.
 - Direct HID profile application requires the actual Ulanzi vendor report bytes or mapping templates. These are not known yet.
+- Driver filter mode requires captured raw report bytes for each D100H control that must be suppressed or rewritten.
+- Driver installation requires WDK build, admin install, and signing/test-signing.
 - If the D100H emits HID consumer reports that are not translated into virtual keys on some Windows machines, Raw Input diagnostics will still be needed for runtime observation.
 
 ## Recommended Next Steps
@@ -70,4 +75,5 @@ Side right bottom    -> Ctrl+Z
 5. Add Raw Input diagnostics for VID/PID discovery.
 6. Capture USB/HID traffic from Ulanzi Studio while assigning a non-volume function to the dial.
 7. Convert captured feature/output report payloads into `hid.reports`.
-8. Add GitHub Actions for build verification and release artifacts.
+8. Capture raw dial reports and add `driverFilter.rules` for suppression if vendor profile reports are unavailable.
+9. Add GitHub Actions for app build verification and a separate WDK driver build pipeline.

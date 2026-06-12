@@ -8,6 +8,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556F}") = "UlanziAdapter.Windows", "s
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556F}") = "UlanziAdapter.App", "src\UlanziAdapter.App\UlanziAdapter.App.csproj", "{5935C4CF-6A71-4DF3-94AA-32209E1DD1BC}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "UlanziAdapter.Filter", "drivers\UlanziAdapter.Filter\UlanziAdapter.Filter.vcxproj", "{7B3A184A-877C-4C5F-9BBE-F9B45537D194}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -26,5 +28,9 @@ Global
 		{5935C4CF-6A71-4DF3-94AA-32209E1DD1BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5935C4CF-6A71-4DF3-94AA-32209E1DD1BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{5935C4CF-6A71-4DF3-94AA-32209E1DD1BC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7B3A184A-877C-4C5F-9BBE-F9B45537D194}.Debug|Any CPU.ActiveCfg = Debug|x64
+		{7B3A184A-877C-4C5F-9BBE-F9B45537D194}.Debug|Any CPU.Build.0 = Debug|x64
+		{7B3A184A-877C-4C5F-9BBE-F9B45537D194}.Release|Any CPU.ActiveCfg = Release|x64
+		{7B3A184A-877C-4C5F-9BBE-F9B45537D194}.Release|Any CPU.Build.0 = Release|x64
 	EndGlobalSection
 EndGlobal

@@ -12,6 +12,8 @@ public sealed class AdapterConfig
 
     public HidConfig Hid { get; set; } = new();
 
+    public DriverFilterConfig DriverFilter { get; set; } = new();
+
     public Dictionary<string, Dictionary<string, BindingConfig>> Bindings { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }
 
@@ -100,6 +102,28 @@ public sealed class HidMappingTemplateConfig
     public int DelayAfterMs { get; set; }
 
     public string? Description { get; set; }
+}
+
+public sealed class DriverFilterConfig
+{
+    public bool ApplyOnStart { get; set; }
+
+    public bool ClearExistingRules { get; set; } = true;
+
+    public List<DriverReportRuleConfig> Rules { get; set; } = new();
+}
+
+public sealed class DriverReportRuleConfig
+{
+    public bool Enabled { get; set; } = true;
+
+    public string? Name { get; set; }
+
+    public string Match { get; set; } = string.Empty;
+
+    public bool Suppress { get; set; } = true;
+
+    public string? Replacement { get; set; }
 }
 
 public sealed class BindingConfig

@@ -16,6 +16,7 @@ UlanziAdapter lets you remap the physical buttons and dial of the D100H from a p
 - Sends vertical and horizontal mouse wheel actions for scroll-style dial mappings.
 - Provides a small **Set Buttons** UI for editing mappings without hand-editing JSON.
 - Includes an experimental direct HID profile path for applying raw HID reports to the device.
+- Includes a new experimental KMDF HID filter driver path for suppressing or rewriting raw HID read reports before Windows handles them.
 - Can start automatically with Windows through the current user's startup registry key.
 - Builds into a self-contained Windows executable.
 
@@ -25,7 +26,12 @@ This is an early driverless implementation.
 
 The app does **not** install a kernel driver, does **not** flash the device firmware, and does **not** write profiles into the D100H. Instead, it listens for the standard keyboard/media events Windows receives from the controller and replaces them with the configured shortcuts.
 
-That makes the app easy to run on restricted machines, but it also has technical limits. The repository now also contains an experimental direct HID profile layer for applying raw HID feature/output reports. That layer can only configure the D100H once the correct Ulanzi report bytes are known or captured. See [Direct HID Profile](#direct-hid-profile) and [Known Limitations](#known-limitations).
+That makes the app easy to run on restricted machines, but it also has technical limits. The repository now contains two lower-level paths:
+
+- Direct HID profile reports, if the vendor report bytes are known.
+- A KMDF HID filter driver that can suppress or rewrite raw HID read reports before Windows handles them.
+
+For the D100H dial volume problem, the filter driver path is the correct architecture. See [Driver Filter Mode](#driver-filter-mode), [Direct HID Profile](#direct-hid-profile), and [Known Limitations](#known-limitations).
 
 ## Quick Start
 
@@ -104,6 +110,7 @@ The UI is intentionally small:
 - **Start minimized**: useful when the app launches at login.
 - **List HID**: enumerate HID devices and log VID/PID, usage, report sizes, and paths.
 - **Apply HID Profile**: send configured raw HID reports from the JSON to the selected device.
+- **Apply Driver Rules**: send raw report suppress/rewrite rules to the installed filter driver.
 - **Runtime tab**: shows active layer and runtime log.
 - **Set Buttons tab**: edit mappings from the UI.
 
@@ -246,6 +253,62 @@ Important: the `bytes` value must include the report ID as the first byte. The s
 
 Use **List HID** in the app to find the D100H VID/PID/path. To discover the actual report bytes, capture USB/HID traffic from Ulanzi Studio while changing a profile, then copy the relevant report payloads into `hid.reports`.
 
+## Driver Filter Mode
+
+If Windows still changes volume when the D100H dial turns, the app is seeing the event too late. The fix is a HID filter driver that intercepts read reports before Windows routes them to the consumer-control volume handler.
+
+The repository includes an experimental KMDF filter driver scaffold:
+
+```text
+drivers\UlanziAdapter.Filter
+```
+
+The driver applies byte-level rules:
+
+```json
+{
+  "driverFilter": {
+    "applyOnStart": false,
+    "clearExistingRules": true,
+    "rules": [
+      {
+        "enabled": true,
+        "name": "Suppress D100H dial clockwise volume report",
+        "match": "01 E9 00",
+        "suppress": true,
+        "replacement": null
+      }
+    ]
+  }
+}
+```
+
+`match` and `replacement` are raw HID report bytes. The values above are placeholders, not confirmed D100H bytes. Use USBPcap/Wireshark or driver tracing to capture the actual reports emitted by your D100H.
+
+Driver build requirements:
+
+- Windows 10 or later.
+- Visual Studio with C++ workload.
+- Windows Driver Kit.
+- Administrator rights.
+- Test signing or a properly signed driver package.
+
+Build the driver from a Windows Developer PowerShell:
+
+```powershell
+.\tools\build-driver.ps1
+```
+
+Before installing, edit `drivers\UlanziAdapter.Filter\UlanziAdapter.Filter.inf` and replace the placeholder hardware ID with the actual D100H HID interface hardware ID from Device Manager.
+
+Install:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\install-driver.ps1
+```
+
+Once installed, launch the app and click **Apply Driver Rules**. The app sends the configured rules to `\\.\UlanziAdapterFilter`.
+
 ## Key Names
 
 Common output examples:
@@ -305,6 +368,8 @@ UlanziAdapter currently uses a low-level keyboard hook. Windows does not expose 
 Practical consequence: media keys and volume events are usually safe to remap, but source inputs such as `Ctrl+C` may also match the same shortcut from a normal keyboard while the app is running.
 
 If `VolumeUp`, `VolumeDown`, and `VolumeMute` still affect system volume, runtime remapping is not enough on that machine. The correct fix is to configure the D100H at the HID level so it stops emitting volume consumer-control events. UlanziAdapter now includes an experimental direct HID profile path for applying raw HID `feature` or `output` reports, but the exact vendor report bytes must be known or captured from Ulanzi Studio.
+
+If vendor configuration reports are unavailable, use Driver Filter Mode. That does not reprogram the D100H; it suppresses or rewrites the raw report before Windows handles it.
 
 Mitigations:
 

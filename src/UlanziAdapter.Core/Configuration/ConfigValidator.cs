@@ -32,6 +32,11 @@ public static class ConfigValidator
             yield return error;
         }
 
+        foreach (var error in ValidateDriverFilter(config.DriverFilter))
+        {
+            yield return error;
+        }
+
         if (!config.Bindings.ContainsKey(config.Behavior.DefaultLayer))
         {
             yield return $"bindings must contain the default layer '{config.Behavior.DefaultLayer}'.";
@@ -165,6 +170,51 @@ public static class ConfigValidator
             if (report.DelayAfterMs < 0)
             {
                 yield return "hid.reports[].delayAfterMs must be zero or greater.";
+            }
+        }
+    }
+
+    private static IEnumerable<string> ValidateDriverFilter(DriverFilterConfig driverFilter)
+    {
+        foreach (var rule in driverFilter.Rules.Where(rule => rule.Enabled))
+        {
+            if (string.IsNullOrWhiteSpace(rule.Match))
+            {
+                yield return "driverFilter.rules[].match cannot be empty when the rule is enabled.";
+                continue;
+            }
+
+            string? matchError = null;
+            try
+            {
+                _ = HexByteParser.Parse(rule.Match);
+            }
+            catch (FormatException ex)
+            {
+                matchError = ex.Message;
+            }
+
+            if (matchError is not null)
+            {
+                yield return $"driverFilter.rules[].match is invalid: {matchError}";
+            }
+
+            if (!string.IsNullOrWhiteSpace(rule.Replacement))
+            {
+                string? replacementError = null;
+                try
+                {
+                    _ = HexByteParser.Parse(rule.Replacement);
+                }
+                catch (FormatException ex)
+                {
+                    replacementError = ex.Message;
+                }
+
+                if (replacementError is not null)
+                {
+                    yield return $"driverFilter.rules[].replacement is invalid: {replacementError}";
+                }
             }
         }
     }

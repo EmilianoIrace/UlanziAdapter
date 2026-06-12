@@ -30,6 +30,11 @@
     "reports": [],
     "mappingTemplates": []
   },
+  "driverFilter": {
+    "applyOnStart": false,
+    "clearExistingRules": true,
+    "rules": []
+  },
   "bindings": {
     "default": {
       "dialClockwise": {

@@ -10,6 +10,8 @@ The Ulanzi Studio D100H can be handled in three broad ways:
 
 The first implementation uses the user-mode remapper approach. It is the most practical option for locked-down work machines because it does not require admin privileges, driver installation, or firmware writes.
 
+The D100H dial volume leak demonstrates the limit of that approach: if Windows handles `VolumeUp` / `VolumeDown` before the app can suppress it, user-mode remapping cannot reliably fix the source behavior.
+
 ## Trade-offs
 
 The low-level keyboard hook used by the app does not expose the physical device handle that produced an input. Suppression is therefore gesture-based, not device-based.
@@ -68,6 +70,26 @@ When the source input includes modifiers, such as `Ctrl+C`, the app releases sou
 
 If a source input is `VolumeUp`, `VolumeDown`, or `VolumeMute`, the correct source-level fix is to reconfigure the HID device so it no longer emits those consumer-control usages. Runtime remapping remains available as a fallback, but the HID profile path is the intended direction for eliminating leaked system volume behavior.
 
+If the vendor HID profile protocol is not known, the fallback source-level architecture is a HID filter driver:
+
+```text
+D100H HID device
+  -> UlanziAdapter.Filter KMDF upper filter
+  -> HID class/client drivers
+  -> Windows consumer-control handling
+```
+
+The filter intercepts `IOCTL_HID_READ_REPORT`, matches raw report bytes, then suppresses or rewrites matching reports before Windows handles them.
+
+User-mode app control path:
+
+```text
+UlanziAdapter.App
+  -> DriverFilterClient
+  -> \\.\UlanziAdapterFilter
+  -> IOCTL_UAF_CLEAR_RULES / IOCTL_UAF_ADD_RULE / IOCTL_UAF_GET_STATUS
+```
+
 ## JSON Layers
 
 `bindings` is organized by layer:
@@ -119,3 +141,27 @@ A HID provider should:
 3. parse D100H reports into `InputEvent`;
 4. avoid duplicate handling when Windows also emits keyboard/media events;
 5. keep the existing JSON format unchanged.
+
+## Driver Filter Rules
+
+`driverFilter.rules` are raw byte-level rules. They are intentionally below the logical `source`/`send` mapping layer because the filter sees bytes, not normalized virtual keys.
+
+Example:
+
+```json
+{
+  "driverFilter": {
+    "applyOnStart": true,
+    "clearExistingRules": true,
+    "rules": [
+      {
+        "name": "Suppress volume-up raw report",
+        "match": "01 E9 00",
+        "suppress": true
+      }
+    ]
+  }
+}
+```
+
+The `match` bytes must be captured from the actual D100H HID interface.

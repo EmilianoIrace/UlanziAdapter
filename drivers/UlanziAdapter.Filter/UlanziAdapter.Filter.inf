@@ -1,0 +1,54 @@
+; UlanziAdapter HID filter driver INF template.
+; Replace the hardware IDs below with the D100H HID interface IDs from Device Manager.
+
+[Version]
+Signature="$WINDOWS NT$"
+Class=HIDClass
+ClassGuid={745A17A0-74D3-11D0-B6FE-00A0C90F57DA}
+Provider=%ManufacturerName%
+CatalogFile=UlanziAdapter.Filter.cat
+DriverVer=06/12/2026,0.1.0.0
+PnpLockdown=1
+
+[Manufacturer]
+%ManufacturerName%=Standard,NTamd64
+
+[Standard.NTamd64]
+%UlanziAdapter.Filter.DeviceDesc%=UlanziAdapter_Filter_Install, HID\VID_0000&PID_0000&MI_00
+
+[DestinationDirs]
+DefaultDestDir=13
+
+[SourceDisksNames]
+1=%DiskName%,,,""
+
+[SourceDisksFiles]
+UlanziAdapter.Filter.sys=1
+
+[UlanziAdapter_Filter_Install.NT]
+CopyFiles=DriverCopyFiles
+
+[DriverCopyFiles]
+UlanziAdapter.Filter.sys
+
+[UlanziAdapter_Filter_Install.NT.HW]
+AddReg=Filter_AddReg
+
+[Filter_AddReg]
+HKR,,"UpperFilters",0x00010000,"UlanziAdapter.Filter"
+
+[UlanziAdapter_Filter_Install.NT.Services]
+AddService=UlanziAdapter.Filter,,Filter_Service_Install
+
+[Filter_Service_Install]
+DisplayName=%UlanziAdapter.Filter.ServiceDesc%
+ServiceType=1
+StartType=3
+ErrorControl=1
+ServiceBinary=%13%\UlanziAdapter.Filter.sys
+
+[Strings]
+ManufacturerName="UlanziAdapter"
+DiskName="UlanziAdapter Filter Driver Installation Disk"
+UlanziAdapter.Filter.DeviceDesc="UlanziAdapter HID Filter"
+UlanziAdapter.Filter.ServiceDesc="UlanziAdapter HID Filter Driver"

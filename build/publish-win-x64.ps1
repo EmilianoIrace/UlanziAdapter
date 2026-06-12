@@ -18,7 +18,6 @@ param(
 $ErrorActionPreference = "Stop"
 
 $root = Resolve-Path (Join-Path $PSScriptRoot "..")
-$solution = Join-Path $root "UlanziAdapter.sln"
 $project = Join-Path $root "src\UlanziAdapter.App\UlanziAdapter.App.csproj"
 $nugetConfig = Join-Path $root "NuGet.config"
 $toolsDir = Join-Path $root ".tools"
@@ -142,10 +141,6 @@ function Stop-RunningAppFromOutput {
 
 $dotnet = Resolve-DotNet
 
-if (-not (Test-Path $solution)) {
-  throw "Solution not found: $solution"
-}
-
 if (-not (Test-Path $project)) {
   throw "App project not found: $project"
 }
@@ -164,15 +159,15 @@ New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
 $selfContained = if ($FrameworkDependent) { "false" } else { "true" }
 
 Write-Host "Restoring packages..."
-& $dotnet restore $solution --configfile $nugetConfig
+& $dotnet restore $project --configfile $nugetConfig
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "Restoring runtime assets for $Runtime..."
 & $dotnet restore $project -r $Runtime --configfile $nugetConfig
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-Write-Host "Building solution..."
-& $dotnet build $solution -c $Configuration --no-restore
+Write-Host "Building app..."
+& $dotnet build $project -c $Configuration --no-restore
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "Publishing $Runtime executable..."

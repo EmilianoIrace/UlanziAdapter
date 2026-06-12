@@ -2,6 +2,7 @@ using UlanziAdapter.Core.Actions;
 using UlanziAdapter.Core.Configuration;
 using UlanziAdapter.Core.Input;
 using UlanziAdapter.Core.Mapping;
+using UlanziAdapter.Windows.Driver;
 using UlanziAdapter.Windows.Hid;
 using UlanziAdapter.Windows.Input;
 using UlanziAdapter.Windows.Output;
@@ -17,6 +18,7 @@ internal sealed class MainForm : Form
     private readonly StartupRegistration _startupRegistration = new();
     private readonly SendInputKeyboardOutput _output = new();
     private readonly WindowsHidDeviceService _hid = new();
+    private readonly DriverFilterClient _driverFilter = new();
     private readonly NotifyIcon _notifyIcon;
 
     private readonly TextBox _configPathTextBox = new();
@@ -25,6 +27,7 @@ internal sealed class MainForm : Form
     private readonly Button _startStopButton = new();
     private readonly Button _listHidButton = new();
     private readonly Button _applyHidButton = new();
+    private readonly Button _applyDriverRulesButton = new();
     private readonly CheckBox _startupCheckBox = new();
     private readonly CheckBox _startMinimizedCheckBox = new();
     private readonly Label _statusLabel = new();
@@ -142,6 +145,10 @@ internal sealed class MainForm : Form
         _applyHidButton.AutoSize = true;
         _applyHidButton.Click += (_, _) => ApplyHidProfile();
 
+        _applyDriverRulesButton.Text = "Apply Driver Rules";
+        _applyDriverRulesButton.AutoSize = true;
+        _applyDriverRulesButton.Click += (_, _) => ApplyDriverFilterRules();
+
         _startupCheckBox.Text = "Start with Windows";
         _startupCheckBox.AutoSize = true;
         _startupCheckBox.CheckedChanged += (_, _) => UpdateStartupRegistration();
@@ -153,6 +160,7 @@ internal sealed class MainForm : Form
         controlsRow.Controls.Add(_startStopButton);
         controlsRow.Controls.Add(_listHidButton);
         controlsRow.Controls.Add(_applyHidButton);
+        controlsRow.Controls.Add(_applyDriverRulesButton);
         controlsRow.Controls.Add(_startupCheckBox);
         controlsRow.Controls.Add(_startMinimizedCheckBox);
 
@@ -798,6 +806,48 @@ internal sealed class MainForm : Form
         }
     }
 
+    private void ApplyDriverFilterRules()
+    {
+        if (_config is null)
+        {
+            Log("Load a config before applying driver filter rules.");
+            return;
+        }
+
+        if (_config.DriverFilter.Rules.Count == 0)
+        {
+            Log("No driver filter rules configured. Add driverFilter.rules entries to the JSON first.");
+            return;
+        }
+
+        try
+        {
+            if (!_driverFilter.IsAvailable())
+            {
+                Log("Driver filter is not available. Install UlanziAdapter.Filter before applying driver rules.");
+                return;
+            }
+
+            if (_config.DriverFilter.ClearExistingRules)
+            {
+                _driverFilter.ClearRules();
+            }
+
+            foreach (var rule in _config.DriverFilter.Rules.Where(rule => rule.Enabled))
+            {
+                _driverFilter.AddRule(rule);
+                Log($"Driver rule applied: {rule.Name ?? rule.Match}");
+            }
+
+            var status = _driverFilter.GetStatus();
+            Log($"Driver status: rules={status.RuleCount}, matched={status.MatchedReports}, rewritten={status.RewrittenReports}, suppressed={status.SuppressedReports}");
+        }
+        catch (Exception ex)
+        {
+            Log("Driver filter error: " + ex.Message);
+        }
+    }
+
     private void LoadConfigAndRestart()
     {
         try
@@ -818,6 +868,11 @@ internal sealed class MainForm : Form
             if (_config.Hid.ApplyOnStart)
             {
                 ApplyHidProfile();
+            }
+
+            if (_config.DriverFilter.ApplyOnStart)
+            {
+                ApplyDriverFilterRules();
             }
 
             StartAdapter();
