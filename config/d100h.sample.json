@@ -4,7 +4,7 @@
     "displayName": "Ulanzi Studio D100H",
     "vendorId": null,
     "productId": null,
-    "notes": "Prima versione driverless: usa gli input standard che Windows riceve dal D100H."
+    "notes": "Driverless version: uses the standard input events Windows receives from the D100H."
   },
   "behavior": {
     "suppressOriginalInput": true,
@@ -20,13 +20,19 @@
     "default": {
       "dialClockwise": {
         "source": "VolumeUp",
-        "send": "Right",
-        "description": "Ghiera oraria"
+        "mouse": {
+          "wheel": "up",
+          "clicks": 1
+        },
+        "description": "Dial clockwise"
       },
       "dialCounterClockwise": {
         "source": "VolumeDown",
-        "send": "Left",
-        "description": "Ghiera antioraria"
+        "mouse": {
+          "wheel": "down",
+          "clicks": 1
+        },
+        "description": "Dial counter-clockwise"
       },
       "dialPress": {
         "source": "VolumeMute",
@@ -35,54 +41,60 @@
           "target": "knobPressed",
           "fallback": "default"
         },
-        "description": "Premi ghiera: passa al secondo layer"
+        "description": "Dial press: toggle the second layer"
       },
       "keyTopLeft": {
         "source": "MediaPreviousTrack",
         "send": "Ctrl+Z",
-        "description": "Tasto alto sinistra"
+        "description": "Top left button"
       },
       "keyTopMiddle": {
         "source": "MediaPlayPause",
         "send": "Space",
-        "description": "Tasto alto centro"
+        "description": "Top middle button"
       },
       "keyTopRight": {
         "source": "MediaNextTrack",
         "send": "Ctrl+Y",
-        "description": "Tasto alto destra"
+        "description": "Top right button"
       },
       "keySideLeftTop": {
         "source": "Ctrl+V",
         "send": "Ctrl+V",
-        "description": "Tasto laterale sinistra alto"
+        "description": "Side left top button"
       },
       "keySideLeftBottom": {
         "source": "Ctrl+C",
         "send": "Ctrl+C",
-        "description": "Tasto laterale sinistra basso"
+        "description": "Side left bottom button"
       },
       "keySideRightTop": {
         "source": "Ctrl+Y",
         "send": "Ctrl+Shift+Z",
-        "description": "Tasto laterale destra alto"
+        "description": "Side right top button"
       },
       "keySideRightBottom": {
         "source": "Ctrl+Z",
         "send": "Ctrl+Z",
-        "description": "Tasto laterale destra basso"
+        "description": "Side right bottom button"
       }
     },
     "knobPressed": {
       "dialClockwise": {
         "source": "VolumeUp",
-        "send": "Ctrl+Right",
-        "description": "Seconda ghiera: avanti rapido"
+        "mouse": {
+          "wheel": "right",
+          "clicks": 1
+        },
+        "description": "Second layer dial clockwise"
       },
       "dialCounterClockwise": {
         "source": "VolumeDown",
-        "send": "Ctrl+Left",
-        "description": "Seconda ghiera: indietro rapido"
+        "mouse": {
+          "wheel": "left",
+          "clicks": 1
+        },
+        "description": "Second layer dial counter-clockwise"
       },
       "dialPress": {
         "source": "VolumeMute",
@@ -91,22 +103,22 @@
           "target": "knobPressed",
           "fallback": "default"
         },
-        "description": "Premi ghiera: torna al layer default"
+        "description": "Dial press: return to the default layer"
       },
       "keyTopLeft": {
         "source": "MediaPreviousTrack",
         "send": "Shift+R",
-        "description": "Layer 2 tasto alto sinistra"
+        "description": "Layer 2 top left button"
       },
       "keyTopMiddle": {
         "source": "MediaPlayPause",
         "send": "Delete",
-        "description": "Layer 2 tasto alto centro"
+        "description": "Layer 2 top middle button"
       },
       "keyTopRight": {
         "source": "MediaNextTrack",
         "send": "G",
-        "description": "Layer 2 tasto alto destra"
+        "description": "Layer 2 top right button"
       },
       "keySideLeftTop": {
         "source": "Ctrl+V",

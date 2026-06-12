@@ -65,6 +65,8 @@ public sealed class BindingEngine
             binding.Description,
             binding.Send,
             binding.Text,
+            binding.Mouse?.Wheel,
+            binding.Mouse?.Clicks ?? 0,
             ActiveLayer);
     }
 
@@ -85,6 +87,7 @@ public sealed class BindingEngine
                     SourceGesture.Parse(binding.Source),
                     binding.Send,
                     binding.Text,
+                    binding.Mouse,
                     binding.Layer,
                     binding.Description);
             }
@@ -178,6 +181,7 @@ public sealed class BindingEngine
         SourceGesture Source,
         string? Send,
         string? Text,
+        MouseActionConfig? Mouse,
         LayerActionConfig? Layer,
         string? Description);
 

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace UlanziAdapter.Core.Configuration;
 
@@ -8,6 +9,8 @@ public static class ConfigLoader
     {
         AllowTrailingCommas = true,
         PropertyNameCaseInsensitive = true,
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         ReadCommentHandling = JsonCommentHandling.Skip,
         WriteIndented = true
     };

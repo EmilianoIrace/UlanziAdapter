@@ -48,6 +48,44 @@ public sealed class SendInputKeyboardOutput
         }
     }
 
+    public void SendMouseWheel(string direction, int clicks)
+    {
+        if (clicks <= 0)
+        {
+            return;
+        }
+
+        var normalizedDirection = direction.Trim().ToLowerInvariant();
+        var isHorizontal = normalizedDirection is "left" or "right";
+        var delta = normalizedDirection switch
+        {
+            "up" => NativeMethods.WHEEL_DELTA,
+            "down" => -NativeMethods.WHEEL_DELTA,
+            "right" => NativeMethods.WHEEL_DELTA,
+            "left" => -NativeMethods.WHEEL_DELTA,
+            _ => throw new InvalidOperationException($"Unknown mouse wheel direction '{direction}'.")
+        };
+
+        var input = new NativeMethods.INPUT
+        {
+            type = NativeMethods.INPUT_MOUSE,
+            U = new NativeMethods.InputUnion
+            {
+                mi = new NativeMethods.MOUSEINPUT
+                {
+                    dx = 0,
+                    dy = 0,
+                    mouseData = unchecked((uint)(delta * clicks)),
+                    dwFlags = isHorizontal ? NativeMethods.MOUSEEVENTF_HWHEEL : NativeMethods.MOUSEEVENTF_WHEEL,
+                    time = 0,
+                    dwExtraInfo = UIntPtr.Zero
+                }
+            }
+        };
+
+        Send(new[] { input });
+    }
+
     private static void AddModifierRelease(List<NativeMethods.INPUT> inputs, bool isPressed, string modifierName)
     {
         if (!isPressed)

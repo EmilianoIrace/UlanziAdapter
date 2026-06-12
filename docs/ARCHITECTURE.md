@@ -1,33 +1,39 @@
 # Architecture
 
-## Brainstorming
+## Context
 
-Il D100H puo essere trattato in due modi:
+The Ulanzi Studio D100H can be handled in three broad ways:
 
-1. Remapper user-mode: intercetta gli input standard visti da Windows e invia nuove scorciatoie. E distribuibile come EXE semplice, ma la soppressione degli input originali non e perfettamente per-dispositivo.
-2. Provider HID proprietario: parla direttamente con il dispositivo in online mode. E l'approccio migliore a lungo termine, ma richiede reverse engineering del protocollo Ulanzi.
-3. Driver/filter kernel: puo bloccare input per device in modo corretto, ma richiede installazione, firma driver e privilegi/policy aziendali compatibili.
+1. User-mode remapper: listen to the standard input events Windows already receives and send replacement actions.
+2. Vendor HID provider: communicate directly with the device using Ulanzi's proprietary protocol.
+3. Kernel/filter driver: block or rewrite input per physical device.
 
-La versione iniziale sceglie il punto 1 per massimizzare usabilita su PC di lavoro bloccati.
+The first implementation uses the user-mode remapper approach. It is the most practical option for locked-down work machines because it does not require admin privileges, driver installation, or firmware writes.
 
-## Cartelle
+## Trade-offs
+
+The low-level keyboard hook used by the app does not expose the physical device handle that produced an input. Suppression is therefore gesture-based, not device-based.
+
+This is usually acceptable for D100H media and volume inputs, but common shortcuts such as `Ctrl+C` can also match a normal keyboard. A future Raw Input or HID provider can improve per-device precision without changing the JSON model.
+
+## Project Layout
 
 ```text
 src/UlanziAdapter.Core
-  Configuration/    Modello JSON, loader e validazione
-  Input/            Eventi normalizzati, sorgenti input, gesture
-  Mapping/          BindingEngine, layer e debounce
-  Actions/          Risultato esecuzione binding
+  Configuration/    JSON model, loader, and validation
+  Input/            Normalized input events, gestures, source abstraction
+  Mapping/          BindingEngine, layers, debounce
+  Actions/          Binding execution result
 
 src/UlanziAdapter.Windows
-  Input/            Hook tastiera low-level e virtual-key names
-  Output/           SendInput keyboard/text output
-  Startup/          Registrazione HKCU Run
-  Storage/          Settings utente in AppData
-  Native/           P/Invoke Win32
+  Input/            Low-level keyboard hook and virtual-key names
+  Output/           SendInput keyboard, text, and mouse wheel output
+  Startup/          HKCU Run startup registration
+  Storage/          User settings in AppData
+  Native/           Win32 P/Invoke definitions
 
 src/UlanziAdapter.App
-  UI WinForms minimale, tray icon, caricamento config
+  Minimal WinForms UI, tray icon, config loading, binding editor
 
 config/
   d100h.sample.json
@@ -37,30 +43,51 @@ docs/
   MEMORY.md
 ```
 
-## Flusso runtime
+## Runtime Flow
 
 ```text
 KeyboardHookInputSource
-  -> InputEvent normalizzato
+  -> InputEvent
   -> BindingEngine.Handle(...)
   -> BindingExecution
   -> SendInputKeyboardOutput
 ```
 
-`BindingEngine` non dipende da Windows. Questo permette di aggiungere in futuro un input source HID senza riscrivere config, layer e azioni.
+`BindingEngine` is intentionally independent from Windows. A future HID input provider should be able to implement `IInputSource` and reuse the same config, validation, layer, and action logic.
 
-Quando una sorgente e una combinazione come `Ctrl+C`, l'app rilascia prima i modificatori sorgente via `SendInput` e poi invia l'azione configurata. Questo evita che il `Ctrl` fisico del D100H contamini l'output rimappato.
+## Actions
 
-## JSON
+Bindings can perform one or more of these action families:
 
-`bindings` e organizzato per layer. Ogni binding ha:
+- `send`: keyboard shortcut sequence, for example `Ctrl+Shift+Z`.
+- `text`: Unicode text output.
+- `mouse`: mouse wheel output, for example vertical or horizontal scrolling.
+- `layer`: switch, toggle, or momentary layer changes.
 
-- `source`: input visto dal D100H, per esempio `VolumeUp` o `Ctrl+C`.
-- `send`: chord da inviare, per esempio `Ctrl+Shift+Z`.
-- `text`: testo Unicode da scrivere.
-- `layer`: azione opzionale `switch`, `toggle` o `momentary`.
+When the source input includes modifiers, such as `Ctrl+C`, the app releases source modifiers before sending the configured action. This avoids contaminating the replacement output with a physical modifier that is still down.
 
-Esempio:
+## JSON Layers
+
+`bindings` is organized by layer:
+
+```json
+{
+  "bindings": {
+    "default": {
+      "dialClockwise": {
+        "source": "VolumeUp",
+        "mouse": {
+          "wheel": "up",
+          "clicks": 1
+        }
+      }
+    },
+    "knobPressed": {}
+  }
+}
+```
+
+Layer actions:
 
 ```json
 {
@@ -73,13 +100,20 @@ Esempio:
 }
 ```
 
-## Limite tecnico importante
+Supported layer modes:
 
-Il low-level keyboard hook non espone l'handle del dispositivo fisico che ha generato il tasto. Quindi `suppressOriginalInput=true` sopprime l'evento in base al gesto, non in base al device. Questo e accettabile per tasti media/volume dedicati, ma puo interferire con combinazioni comuni come `Ctrl+C` se vengono premute da una tastiera normale mentre l'app e attiva.
+- `switch`
+- `toggle`
+- `momentary`
 
-Mitigazioni future:
+## Future HID Provider
 
-- schermata capture per confermare quali sorgenti sono effettivamente usate;
-- allowlist piu restrittiva;
-- provider Raw Input diagnostico per identificare VID/PID;
-- provider HID proprietario, se il protocollo Ulanzi viene documentato o reverse-engineerato.
+The intended extension point is `IInputSource`.
+
+A HID provider should:
+
+1. enumerate HID devices;
+2. filter by VID/PID or product string;
+3. parse D100H reports into `InputEvent`;
+4. avoid duplicate handling when Windows also emits keyboard/media events;
+5. keep the existing JSON format unchanged.

@@ -13,6 +13,8 @@ UlanziAdapter lets you remap the physical buttons and dial of the D100H from a p
 - Remaps the dial clockwise/counter-clockwise actions.
 - Supports a second layer triggered by pressing the dial.
 - Sends keyboard shortcuts or text using the Windows `SendInput` API.
+- Sends vertical and horizontal mouse wheel actions for scroll-style dial mappings.
+- Provides a small **Set Buttons** UI for editing mappings without hand-editing JSON.
 - Can start automatically with Windows through the current user's startup registry key.
 - Builds into a self-contained Windows executable.
 
@@ -66,6 +68,7 @@ The build script:
 
 - checks for the .NET SDK;
 - downloads a local .NET 8 SDK into `.tools\dotnet` if needed;
+- uses the repository `NuGet.config`, which points to `https://api.nuget.org/v3/index.json`;
 - restores packages;
 - builds the solution;
 - publishes a self-contained Windows executable.
@@ -98,9 +101,36 @@ The UI is intentionally small:
 - **Start / Stop**: enable or disable remapping.
 - **Start with Windows**: register the app in `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`.
 - **Start minimized**: useful when the app launches at login.
-- **Log**: shows detected mappings and runtime errors.
+- **Runtime tab**: shows active layer and runtime log.
+- **Set Buttons tab**: edit mappings from the UI.
 
 Closing the window hides the app to the tray. Use the tray menu to reopen or exit.
+
+### Set Buttons UI
+
+The **Set Buttons** tab lists every binding from the selected JSON file.
+
+To record a keyboard shortcut:
+
+1. Select a row.
+2. Click **Capture Shortcut**.
+3. Press the desired key or key combination.
+4. The app saves the shortcut to JSON and reloads the mapping.
+
+To use a standard action:
+
+1. Select a row.
+2. Pick a preset.
+3. Click **Apply Preset**.
+
+Available preset groups include:
+
+- mouse scroll up/down/left/right;
+- navigation arrows and page movement;
+- editing shortcuts such as copy, paste, undo, redo, save;
+- zoom in/out;
+- media controls;
+- layer toggle and momentary layer actions.
 
 ## Configuration
 
@@ -126,6 +156,7 @@ Supported action types:
 { "send": "Ctrl+Shift+Z" }
 { "send": "Ctrl+C;Ctrl+V" }
 { "text": "Hello world" }
+{ "mouse": { "wheel": "down", "clicks": 1 } }
 ```
 
 Layers are supported. The sample config uses the dial press to toggle a second layer:
@@ -250,6 +281,13 @@ Behavior options:
 | `exactModifierMatch` | Requires exact modifier state for sources such as `Ctrl+C`. |
 | `debounceMs` | Ignores repeated events inside the debounce window. |
 | `defaultLayer` | Layer used when the app starts. |
+
+Mouse wheel options:
+
+| Field | Description |
+| --- | --- |
+| `mouse.wheel` | `up`, `down`, `left`, or `right`. |
+| `mouse.clicks` | Positive number of wheel clicks sent per trigger. |
 
 ## Architecture
 

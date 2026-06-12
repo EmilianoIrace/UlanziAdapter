@@ -20,6 +20,7 @@ $ErrorActionPreference = "Stop"
 $root = Resolve-Path (Join-Path $PSScriptRoot "..")
 $solution = Join-Path $root "UlanziAdapter.sln"
 $project = Join-Path $root "src\UlanziAdapter.App\UlanziAdapter.App.csproj"
+$nugetConfig = Join-Path $root "NuGet.config"
 $toolsDir = Join-Path $root ".tools"
 $localDotNetDir = Join-Path $toolsDir "dotnet"
 $isWindowsOs = [System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform([System.Runtime.InteropServices.OSPlatform]::Windows)
@@ -106,6 +107,10 @@ if (-not (Test-Path $project)) {
   throw "App project not found: $project"
 }
 
+if (-not (Test-Path $nugetConfig)) {
+  throw "NuGet config not found: $nugetConfig"
+}
+
 if (-not $NoClean -and (Test-Path $OutputDir)) {
   Remove-Item $OutputDir -Recurse -Force
 }
@@ -115,7 +120,11 @@ New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
 $selfContained = if ($FrameworkDependent) { "false" } else { "true" }
 
 Write-Host "Restoring packages..."
-& $dotnet restore $solution
+& $dotnet restore $solution --configfile $nugetConfig
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+Write-Host "Restoring runtime assets for $Runtime..."
+& $dotnet restore $project -r $Runtime --configfile $nugetConfig
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 Write-Host "Building solution..."
@@ -127,6 +136,7 @@ Write-Host "Publishing $Runtime executable..."
   -c $Configuration `
   -r $Runtime `
   --self-contained $selfContained `
+  --no-restore `
   -o $OutputDir `
   /p:PublishSingleFile=true `
   /p:IncludeNativeLibrariesForSelfExtract=true `

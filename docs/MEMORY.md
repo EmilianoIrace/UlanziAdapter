@@ -1,55 +1,67 @@
 # Project Memory
 
-## Obiettivo
+## Goal
 
-Creare un EXE Windows minimale per Ulanzi Studio D100H che carichi un JSON e rimappi i 7 tasti piu la ghiera. Deve poter partire allo startup senza installare il software Ulanzi ufficiale.
+Build a minimal Windows executable for the Ulanzi Studio D100H that loads JSON mappings and remaps the 7 physical buttons plus the dial. The app should be usable on work PCs where the official Ulanzi software cannot be installed.
 
-## Decisioni prese
+## Current Decisions
 
-- Tecnologia: C#/.NET 8 WinForms.
-- Distribuzione: publish self-contained single-file per `win-x64`.
-- Nessun privilegio admin richiesto.
-- Startup: registro utente `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`.
-- Input iniziale: hook tastiera low-level.
+- Language/runtime: C# with .NET 8.
+- UI: WinForms.
+- Distribution: self-contained single-file publish for `win-x64` by default.
+- Admin privileges: not required.
+- Startup: current-user registry key at `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`.
+- Input source: low-level keyboard hook.
 - Output: Win32 `SendInput`.
-- Config: JSON versionato, copiato in `%AppData%\UlanziAdapter\d100h.json` al primo avvio.
-- Architettura aperta: `IInputSource` permette un futuro provider HID.
+- Config: versioned JSON.
+- User config location: `%AppData%\UlanziAdapter\d100h.json`.
+- Build bootstrap: `build.ps1` downloads a local .NET SDK into `.tools\dotnet` when needed.
+- NuGet source: repository `NuGet.config` points to `https://api.nuget.org/v3/index.json`.
 
-## Mapping D100H assunto
+## Assumed D100H Source Mapping
 
-Fonte pratica trovata pubblicamente su GitHub/input-remapper:
+Community-reported mapping used by `config/d100h.sample.json`:
 
 ```text
-Dial Clockwise       -> VolumeUp
-Dial Anti-clockwise  -> VolumeDown
-Dial Press           -> VolumeMute
-Top Left             -> MediaPreviousTrack
-Top Middle           -> MediaPlayPause
-Top Right            -> MediaNextTrack
-Side Left Top        -> Ctrl+V
-Side Left Bottom     -> Ctrl+C
-Side Right Top       -> Ctrl+Y
-Side Right Bottom    -> Ctrl+Z
+Dial clockwise       -> VolumeUp
+Dial counter-clockwise -> VolumeDown
+Dial press           -> VolumeMute
+Top left             -> MediaPreviousTrack
+Top middle           -> MediaPlayPause
+Top right            -> MediaNextTrack
+Side left top        -> Ctrl+V
+Side left bottom     -> Ctrl+C
+Side right top       -> Ctrl+Y
+Side right bottom    -> Ctrl+Z
 ```
 
-## Rischi aperti
+## Implemented Features
 
-- Non verificato su Windows con D100H fisico.
-- macOS locale non ha .NET SDK installato, quindi la build non e stata eseguita qui.
-- La soppressione input e per gesto, non per dispositivo. Questo puo confliggere con tastiera normale per sorgenti tipo `Ctrl+C`.
-- Se il D100H su Windows usa HID consumer reports non convertiti in virtual keys, servira aggiungere Raw Input/HID.
+- Runtime remapping from JSON.
+- Layer support.
+- Dial press can toggle or hold a second layer.
+- Keyboard shortcut output.
+- Text output.
+- Mouse wheel output for vertical and horizontal scroll.
+- UI tab for editing bindings.
+- Shortcut capture in the UI.
+- Standard action presets for mouse wheel, navigation, editing, zoom, media, and layer actions.
+- Windows startup registration.
+- Self-contained build script.
 
-## Prossimi passi consigliati
+## Open Risks
 
-1. Compilare su Windows con .NET 8.
-2. Avviare app e premere ogni tasto D100H verificando il log.
-3. Se i tasti laterali interferiscono con tastiera normale, impostare `suppressOriginalInput=false` oppure cambiare sorgenti/output.
-4. Aggiungere capture wizard:
-   - modalita ascolto prossimo input;
-   - scrittura automatica del campo `source`;
-   - esportazione config.
-5. Aggiungere provider HID:
-   - enumerazione HID devices;
-   - filtro VID/PID;
-   - parsing report;
-   - opzione di soppressione precisa solo se il device non emette gia input tastiera standard.
+- The D100H has not been physically tested in this environment on Windows.
+- Input suppression is gesture-based, not device-based.
+- Common source gestures such as `Ctrl+C` can conflict with a normal keyboard while the app is active.
+- If the D100H emits HID consumer reports that are not translated into virtual keys on some Windows machines, a Raw Input or HID provider will be needed.
+
+## Recommended Next Steps
+
+1. Test the app on Windows with the physical D100H.
+2. Press every D100H control and verify the runtime log.
+3. Confirm whether the sample sources match Windows behavior.
+4. Add automated tests for config validation and `BindingEngine`.
+5. Add Raw Input diagnostics for VID/PID discovery.
+6. Add a HID provider if the protocol becomes known.
+7. Add GitHub Actions for build verification and release artifacts.

@@ -12,8 +12,12 @@ internal static class NativeMethods
     internal const int LLKHF_INJECTED = 0x00000010;
 
     internal const uint INPUT_KEYBOARD = 1;
+    internal const uint INPUT_MOUSE = 0;
     internal const uint KEYEVENTF_KEYUP = 0x0002;
     internal const uint KEYEVENTF_UNICODE = 0x0004;
+    internal const uint MOUSEEVENTF_WHEEL = 0x0800;
+    internal const uint MOUSEEVENTF_HWHEEL = 0x01000;
+    internal const int WHEEL_DELTA = 120;
 
     internal delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
 
@@ -54,7 +58,21 @@ internal static class NativeMethods
     internal struct InputUnion
     {
         [FieldOffset(0)]
+        public MOUSEINPUT mi;
+
+        [FieldOffset(0)]
         public KEYBDINPUT ki;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    internal struct MOUSEINPUT
+    {
+        public int dx;
+        public int dy;
+        public uint mouseData;
+        public uint dwFlags;
+        public uint time;
+        public UIntPtr dwExtraInfo;
     }
 
     [StructLayout(LayoutKind.Sequential)]

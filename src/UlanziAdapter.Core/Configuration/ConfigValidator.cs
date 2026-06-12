@@ -74,9 +74,24 @@ public static class ConfigValidator
 
                 if (string.IsNullOrWhiteSpace(binding.Send) &&
                     string.IsNullOrWhiteSpace(binding.Text) &&
+                    binding.Mouse is null &&
                     binding.Layer is null)
                 {
                     yield return $"Binding '{layerName}.{controlName}' has no action.";
+                }
+
+                if (binding.Mouse is not null)
+                {
+                    var wheel = binding.Mouse.Wheel.Trim().ToLowerInvariant();
+                    if (wheel is not ("up" or "down" or "left" or "right"))
+                    {
+                        yield return $"Binding '{layerName}.{controlName}' mouse.wheel must be up, down, left, or right.";
+                    }
+
+                    if (binding.Mouse.Clicks <= 0)
+                    {
+                        yield return $"Binding '{layerName}.{controlName}' mouse.clicks must be greater than zero.";
+                    }
                 }
 
                 if (binding.Layer is not null)

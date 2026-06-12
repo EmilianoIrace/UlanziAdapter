@@ -52,9 +52,18 @@ public sealed class BindingConfig
 
     public string? Text { get; set; }
 
+    public MouseActionConfig? Mouse { get; set; }
+
     public LayerActionConfig? Layer { get; set; }
 
     public string? Description { get; set; }
+}
+
+public sealed class MouseActionConfig
+{
+    public string Wheel { get; set; } = "down";
+
+    public int Clicks { get; set; } = 1;
 }
 
 public sealed class LayerActionConfig
