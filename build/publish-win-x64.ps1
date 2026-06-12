@@ -97,6 +97,49 @@ function Resolve-DotNet {
   return $localDotNet
 }
 
+function Stop-RunningAppFromOutput {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string] $PublishDirectory
+  )
+
+  $expectedExe = [System.IO.Path]::GetFullPath((Join-Path $PublishDirectory "UlanziAdapter.App.exe"))
+  $processes = @(Get-Process -Name "UlanziAdapter.App" -ErrorAction SilentlyContinue)
+  if ($processes.Count -eq 0) {
+    return
+  }
+
+  foreach ($process in $processes) {
+    $processPath = $null
+    try {
+      $processPath = [System.IO.Path]::GetFullPath($process.MainModule.FileName)
+    } catch {
+      # MainModule can be unavailable for protected or cross-bitness processes.
+    }
+
+    if ($processPath -and
+        -not [string]::Equals($processPath, $expectedExe, [System.StringComparison]::OrdinalIgnoreCase)) {
+      continue
+    }
+
+    Write-Host "Stopping running UlanziAdapter.App process (PID $($process.Id)) before cleaning publish output..."
+
+    try {
+      if ($process.MainWindowHandle -ne 0) {
+        [void] $process.CloseMainWindow()
+        if ($process.WaitForExit(5000)) {
+          continue
+        }
+      }
+
+      Stop-Process -Id $process.Id -Force -ErrorAction Stop
+      $process.WaitForExit(5000)
+    } catch {
+      throw "Unable to stop UlanziAdapter.App process PID $($process.Id). Close it manually and run the build again. $($_.Exception.Message)"
+    }
+  }
+}
+
 $dotnet = Resolve-DotNet
 
 if (-not (Test-Path $solution)) {
@@ -112,6 +155,7 @@ if (-not (Test-Path $nugetConfig)) {
 }
 
 if (-not $NoClean -and (Test-Path $OutputDir)) {
+  Stop-RunningAppFromOutput -PublishDirectory $OutputDir
   Remove-Item $OutputDir -Recurse -Force
 }
 
