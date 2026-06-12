@@ -10,6 +10,8 @@ public sealed class AdapterConfig
 
     public StartupConfig Startup { get; set; } = new();
 
+    public HidConfig Hid { get; set; } = new();
+
     public Dictionary<string, Dictionary<string, BindingConfig>> Bindings { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }
 
@@ -40,6 +42,43 @@ public sealed class StartupConfig
     public bool Enabled { get; set; }
 
     public bool StartMinimized { get; set; } = true;
+}
+
+public sealed class HidConfig
+{
+    public bool ApplyOnStart { get; set; }
+
+    public HidDeviceSelectorConfig Selector { get; set; } = new();
+
+    public List<HidReportConfig> Reports { get; set; } = new();
+}
+
+public sealed class HidDeviceSelectorConfig
+{
+    public string? DevicePath { get; set; }
+
+    public int? VendorId { get; set; }
+
+    public int? ProductId { get; set; }
+
+    public int? UsagePage { get; set; }
+
+    public int? Usage { get; set; }
+
+    public string? ProductContains { get; set; } = "Ulanzi";
+}
+
+public sealed class HidReportConfig
+{
+    public bool Enabled { get; set; } = true;
+
+    public string Type { get; set; } = "feature";
+
+    public string Bytes { get; set; } = string.Empty;
+
+    public int DelayAfterMs { get; set; }
+
+    public string? Description { get; set; }
 }
 
 public sealed class BindingConfig

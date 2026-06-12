@@ -13,6 +13,7 @@ Build a minimal Windows executable for the Ulanzi Studio D100H that loads JSON m
 - Startup: current-user registry key at `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`.
 - Input source: low-level keyboard hook.
 - Output: Win32 `SendInput`.
+- Direct HID: Win32 SetupAPI/HID P/Invoke in `UlanziAdapter.Windows.Hid`.
 - Config: versioned JSON.
 - User config location: `%AppData%\UlanziAdapter\d100h.json`.
 - Build bootstrap: `build.ps1` downloads a local .NET SDK into `.tools\dotnet` when needed.
@@ -46,6 +47,8 @@ Side right bottom    -> Ctrl+Z
 - UI tab for editing bindings.
 - Shortcut capture in the UI.
 - Standard action presets for mouse wheel, navigation, editing, zoom, media, and layer actions.
+- HID device enumeration from the UI.
+- Experimental raw HID feature/output report application from JSON.
 - Windows startup registration.
 - Self-contained build script.
 
@@ -54,7 +57,8 @@ Side right bottom    -> Ctrl+Z
 - The D100H has not been physically tested in this environment on Windows.
 - Input suppression is gesture-based, not device-based.
 - Common source gestures such as `Ctrl+C` can conflict with a normal keyboard while the app is active.
-- If the D100H emits HID consumer reports that are not translated into virtual keys on some Windows machines, a Raw Input or HID provider will be needed.
+- Direct HID profile application requires the actual Ulanzi vendor report bytes. These are not known yet.
+- If the D100H emits HID consumer reports that are not translated into virtual keys on some Windows machines, Raw Input diagnostics will still be needed for runtime observation.
 
 ## Recommended Next Steps
 
@@ -63,5 +67,6 @@ Side right bottom    -> Ctrl+Z
 3. Confirm whether the sample sources match Windows behavior.
 4. Add automated tests for config validation and `BindingEngine`.
 5. Add Raw Input diagnostics for VID/PID discovery.
-6. Add a HID provider if the protocol becomes known.
-7. Add GitHub Actions for build verification and release artifacts.
+6. Capture USB/HID traffic from Ulanzi Studio while assigning a non-volume function to the dial.
+7. Convert captured feature/output report payloads into `hid.reports`.
+8. Add GitHub Actions for build verification and release artifacts.

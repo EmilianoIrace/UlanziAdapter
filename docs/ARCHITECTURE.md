@@ -66,7 +66,7 @@ Bindings can perform one or more of these action families:
 
 When the source input includes modifiers, such as `Ctrl+C`, the app releases source modifiers before sending the configured action. This avoids contaminating the replacement output with a physical modifier that is still down.
 
-When the source input is `VolumeUp`, `VolumeDown`, or `VolumeMute` and the mapped action is not itself a volume command, the app snapshots the current default audio endpoint state and restores it shortly after the action. This guards against Windows applying the hardware volume event even when the remapper handles the input.
+If a source input is `VolumeUp`, `VolumeDown`, or `VolumeMute`, the correct source-level fix is to reconfigure the HID device so it no longer emits those consumer-control usages. Runtime remapping remains available as a fallback, but the HID profile path is the intended direction for eliminating leaked system volume behavior.
 
 ## JSON Layers
 

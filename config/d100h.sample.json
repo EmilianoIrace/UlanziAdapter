@@ -16,6 +16,18 @@
     "enabled": false,
     "startMinimized": true
   },
+  "hid": {
+    "applyOnStart": false,
+    "selector": {
+      "devicePath": null,
+      "vendorId": null,
+      "productId": null,
+      "usagePage": null,
+      "usage": null,
+      "productContains": "Ulanzi"
+    },
+    "reports": []
+  },
   "bindings": {
     "default": {
       "dialClockwise": {

@@ -27,6 +27,11 @@ public static class ConfigValidator
             yield break;
         }
 
+        foreach (var error in ValidateHid(config.Hid))
+        {
+            yield return error;
+        }
+
         if (!config.Bindings.ContainsKey(config.Behavior.DefaultLayer))
         {
             yield return $"bindings must contain the default layer '{config.Behavior.DefaultLayer}'.";
@@ -117,6 +122,49 @@ public static class ConfigValidator
                         yield return $"Binding '{layerName}.{controlName}' references missing fallback layer '{binding.Layer.Fallback}'.";
                     }
                 }
+            }
+        }
+    }
+
+    private static IEnumerable<string> ValidateHid(HidConfig hid)
+    {
+        foreach (var report in hid.Reports)
+        {
+            if (!report.Enabled)
+            {
+                continue;
+            }
+
+            var type = report.Type.Trim().ToLowerInvariant();
+            if (type is not ("feature" or "output"))
+            {
+                yield return "hid.reports[].type must be feature or output.";
+            }
+
+            if (string.IsNullOrWhiteSpace(report.Bytes))
+            {
+                yield return "hid.reports[].bytes cannot be empty when the report is enabled.";
+                continue;
+            }
+
+            string? bytesError = null;
+            try
+            {
+                _ = HexByteParser.Parse(report.Bytes);
+            }
+            catch (FormatException ex)
+            {
+                bytesError = ex.Message;
+            }
+
+            if (bytesError is not null)
+            {
+                yield return $"hid.reports[].bytes is invalid: {bytesError}";
+            }
+
+            if (report.DelayAfterMs < 0)
+            {
+                yield return "hid.reports[].delayAfterMs must be zero or greater.";
             }
         }
     }

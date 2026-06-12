@@ -15,6 +15,7 @@ UlanziAdapter lets you remap the physical buttons and dial of the D100H from a p
 - Sends keyboard shortcuts or text using the Windows `SendInput` API.
 - Sends vertical and horizontal mouse wheel actions for scroll-style dial mappings.
 - Provides a small **Set Buttons** UI for editing mappings without hand-editing JSON.
+- Includes an experimental direct HID profile path for applying raw HID reports to the device.
 - Can start automatically with Windows through the current user's startup registry key.
 - Builds into a self-contained Windows executable.
 
@@ -24,7 +25,7 @@ This is an early driverless implementation.
 
 The app does **not** install a kernel driver, does **not** flash the device firmware, and does **not** write profiles into the D100H. Instead, it listens for the standard keyboard/media events Windows receives from the controller and replaces them with the configured shortcuts.
 
-That makes the app easy to run on restricted machines, but it also has technical limits. See [Known Limitations](#known-limitations).
+That makes the app easy to run on restricted machines, but it also has technical limits. The repository now also contains an experimental direct HID profile layer for applying raw HID feature/output reports. That layer can only configure the D100H once the correct Ulanzi report bytes are known or captured. See [Direct HID Profile](#direct-hid-profile) and [Known Limitations](#known-limitations).
 
 ## Quick Start
 
@@ -101,6 +102,8 @@ The UI is intentionally small:
 - **Start / Stop**: enable or disable remapping.
 - **Start with Windows**: register the app in `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`.
 - **Start minimized**: useful when the app launches at login.
+- **List HID**: enumerate HID devices and log VID/PID, usage, report sizes, and paths.
+- **Apply HID Profile**: send configured raw HID reports from the JSON to the selected device.
 - **Runtime tab**: shows active layer and runtime log.
 - **Set Buttons tab**: edit mappings from the UI.
 
@@ -178,6 +181,46 @@ Layer modes:
 - `toggle`: toggle between target and fallback.
 - `momentary`: use target while the source key is held.
 
+## Direct HID Profile
+
+Runtime remapping cannot always stop Windows from handling the original HID consumer-control event. For example, the D100H dial can emit `VolumeUp` and `VolumeDown`; on some Windows systems those events may still change system volume even when the app maps the action to scroll.
+
+The source-level fix is to configure the D100H itself so it emits different HID usages. UlanziAdapter now supports an experimental raw HID profile section:
+
+```json
+{
+  "hid": {
+    "applyOnStart": false,
+    "selector": {
+      "devicePath": null,
+      "vendorId": null,
+      "productId": null,
+      "usagePage": null,
+      "usage": null,
+      "productContains": "Ulanzi"
+    },
+    "reports": [
+      {
+        "enabled": true,
+        "type": "feature",
+        "bytes": "00 00 00 00",
+        "delayAfterMs": 50,
+        "description": "Example placeholder report"
+      }
+    ]
+  }
+}
+```
+
+Report types:
+
+- `feature`: sent with `HidD_SetFeature`.
+- `output`: sent with `WriteFile` to the HID device.
+
+Important: the `bytes` value must include the report ID as the first byte. The sample does not include real D100H profile reports because the vendor protocol has not been documented in this repository yet.
+
+Use **List HID** in the app to find the D100H VID/PID/path. To discover the actual report bytes, capture USB/HID traffic from Ulanzi Studio while changing a profile, then copy the relevant report payloads into `hid.reports`.
+
 ## Key Names
 
 Common output examples:
@@ -236,7 +279,7 @@ UlanziAdapter currently uses a low-level keyboard hook. Windows does not expose 
 
 Practical consequence: media keys and volume events are usually safe to remap, but source inputs such as `Ctrl+C` may also match the same shortcut from a normal keyboard while the app is running.
 
-For `VolumeUp`, `VolumeDown`, and `VolumeMute` sources, the app also applies a volume guard: when those inputs are remapped to a non-volume action, it snapshots the current Windows audio endpoint volume/mute state and restores it immediately after the action. This prevents the D100H dial from changing system volume while it is being used for scroll, navigation, zoom, or layer switching.
+If `VolumeUp`, `VolumeDown`, and `VolumeMute` still affect system volume, runtime remapping is not enough on that machine. The correct fix is to configure the D100H at the HID level so it stops emitting volume consumer-control events. UlanziAdapter now includes an experimental direct HID profile path for applying raw HID `feature` or `output` reports, but the exact vendor report bytes must be known or captured from Ulanzi Studio.
 
 Mitigations:
 
@@ -268,6 +311,13 @@ Top-level JSON structure:
   "startup": {
     "enabled": false,
     "startMinimized": true
+  },
+  "hid": {
+    "applyOnStart": false,
+    "selector": {
+      "productContains": "Ulanzi"
+    },
+    "reports": []
   },
   "bindings": {
     "default": {}

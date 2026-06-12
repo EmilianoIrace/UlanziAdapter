@@ -2,6 +2,7 @@ using UlanziAdapter.Core.Actions;
 using UlanziAdapter.Core.Configuration;
 using UlanziAdapter.Core.Input;
 using UlanziAdapter.Core.Mapping;
+using UlanziAdapter.Windows.Hid;
 using UlanziAdapter.Windows.Input;
 using UlanziAdapter.Windows.Output;
 using UlanziAdapter.Windows.Startup;
@@ -15,13 +16,15 @@ internal sealed class MainForm : Form
     private readonly SettingsStore _settingsStore = new();
     private readonly StartupRegistration _startupRegistration = new();
     private readonly SendInputKeyboardOutput _output = new();
-    private readonly AudioEndpointVolumeController _audioVolume = new();
+    private readonly WindowsHidDeviceService _hid = new();
     private readonly NotifyIcon _notifyIcon;
 
     private readonly TextBox _configPathTextBox = new();
     private readonly Button _browseButton = new();
     private readonly Button _reloadButton = new();
     private readonly Button _startStopButton = new();
+    private readonly Button _listHidButton = new();
+    private readonly Button _applyHidButton = new();
     private readonly CheckBox _startupCheckBox = new();
     private readonly CheckBox _startMinimizedCheckBox = new();
     private readonly Label _statusLabel = new();
@@ -131,6 +134,14 @@ internal sealed class MainForm : Form
         _startStopButton.AutoSize = true;
         _startStopButton.Click += (_, _) => ToggleAdapter();
 
+        _listHidButton.Text = "List HID";
+        _listHidButton.AutoSize = true;
+        _listHidButton.Click += (_, _) => ListHidDevices();
+
+        _applyHidButton.Text = "Apply HID Profile";
+        _applyHidButton.AutoSize = true;
+        _applyHidButton.Click += (_, _) => ApplyHidProfile();
+
         _startupCheckBox.Text = "Start with Windows";
         _startupCheckBox.AutoSize = true;
         _startupCheckBox.CheckedChanged += (_, _) => UpdateStartupRegistration();
@@ -140,6 +151,8 @@ internal sealed class MainForm : Form
         _startMinimizedCheckBox.CheckedChanged += (_, _) => PersistSettings();
 
         controlsRow.Controls.Add(_startStopButton);
+        controlsRow.Controls.Add(_listHidButton);
+        controlsRow.Controls.Add(_applyHidButton);
         controlsRow.Controls.Add(_startupCheckBox);
         controlsRow.Controls.Add(_startMinimizedCheckBox);
 
@@ -698,6 +711,57 @@ internal sealed class MainForm : Form
         StartAdapter();
     }
 
+    private void ListHidDevices()
+    {
+        try
+        {
+            var devices = _hid.EnumerateDevices();
+            if (devices.Count == 0)
+            {
+                Log("No HID devices found.");
+                return;
+            }
+
+            Log($"HID devices found: {devices.Count}");
+            foreach (var device in devices)
+            {
+                Log($"{device.DisplayName} input={device.InputReportLength} output={device.OutputReportLength} feature={device.FeatureReportLength}");
+                Log($"  path: {device.DevicePath}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Log("HID enumeration error: " + ex.Message);
+        }
+    }
+
+    private void ApplyHidProfile()
+    {
+        if (_config is null)
+        {
+            Log("Load a config before applying a HID profile.");
+            return;
+        }
+
+        if (_config.Hid.Reports.Count == 0)
+        {
+            Log("No HID reports configured. Add hid.reports entries to the JSON first.");
+            return;
+        }
+
+        try
+        {
+            foreach (var result in _hid.ApplyReports(_config.Hid))
+            {
+                Log((result.Success ? "HID: " : "HID error: ") + result.Message);
+            }
+        }
+        catch (Exception ex)
+        {
+            Log("HID apply error: " + ex.Message);
+        }
+    }
+
     private void LoadConfigAndRestart()
     {
         try
@@ -715,6 +779,11 @@ internal sealed class MainForm : Form
             RefreshBindingList();
 
             Log($"Config loaded: {Path.GetFileName(configPath)}");
+            if (_config.Hid.ApplyOnStart)
+            {
+                ApplyHidProfile();
+            }
+
             StartAdapter();
         }
         catch (Exception ex)
@@ -774,18 +843,12 @@ internal sealed class MainForm : Form
         }
 
         BindingExecution execution;
-        AudioVolumeSnapshot? volumeSnapshot = null;
         try
         {
             execution = _engine.Handle(input);
             if (!execution.Handled)
             {
                 return false;
-            }
-
-            if (ShouldGuardLeakedVolumeInput(input, execution))
-            {
-                volumeSnapshot = _audioVolume.TryCapture();
             }
 
             _output.ReleaseModifiers(input.Modifiers);
@@ -805,18 +868,9 @@ internal sealed class MainForm : Form
                 _output.SendMouseWheel(execution.MouseWheel, execution.MouseWheelClicks);
             }
 
-            if (volumeSnapshot is not null)
-            {
-                _audioVolume.RestoreSoon(volumeSnapshot);
-            }
         }
         catch (Exception ex)
         {
-            if (volumeSnapshot is not null)
-            {
-                _audioVolume.RestoreSoon(volumeSnapshot);
-            }
-
             BeginInvokeSafe(() => Log("Mapping error: " + ex.Message));
             return false;
         }
@@ -832,29 +886,6 @@ internal sealed class MainForm : Form
         });
 
         return _config.Behavior.SuppressOriginalInput;
-    }
-
-    private static bool ShouldGuardLeakedVolumeInput(InputEvent input, BindingExecution execution)
-    {
-        if (input.NormalizedKey is not ("VolumeUp" or "VolumeDown" or "VolumeMute"))
-        {
-            return false;
-        }
-
-        return !SendsVolumeCommand(execution.Send);
-    }
-
-    private static bool SendsVolumeCommand(string? send)
-    {
-        if (string.IsNullOrWhiteSpace(send))
-        {
-            return false;
-        }
-
-        return send
-            .Split(new[] { '+', ';' }, StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-            .Select(KeyName.Normalize)
-            .Any(key => key is "VolumeUp" or "VolumeDown" or "VolumeMute");
     }
 
     private void UpdateStartupRegistration()
