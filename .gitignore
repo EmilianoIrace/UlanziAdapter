@@ -1,0 +1,11 @@
+bin/
+obj/
+.vs/
+.idea/
+.tools/
+*.user
+*.suo
+*.userosscache
+
+# Publish output can be regenerated with build/publish-win-x64.ps1.
+artifacts/

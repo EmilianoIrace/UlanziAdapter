@@ -1,0 +1,133 @@
+{
+  "version": 1,
+  "device": {
+    "displayName": "Ulanzi Studio D100H",
+    "vendorId": null,
+    "productId": null,
+    "notes": "Prima versione driverless: usa gli input standard che Windows riceve dal D100H."
+  },
+  "behavior": {
+    "suppressOriginalInput": true,
+    "exactModifierMatch": true,
+    "debounceMs": 10,
+    "defaultLayer": "default"
+  },
+  "startup": {
+    "enabled": false,
+    "startMinimized": true
+  },
+  "bindings": {
+    "default": {
+      "dialClockwise": {
+        "source": "VolumeUp",
+        "send": "Right",
+        "description": "Ghiera oraria"
+      },
+      "dialCounterClockwise": {
+        "source": "VolumeDown",
+        "send": "Left",
+        "description": "Ghiera antioraria"
+      },
+      "dialPress": {
+        "source": "VolumeMute",
+        "layer": {
+          "mode": "toggle",
+          "target": "knobPressed",
+          "fallback": "default"
+        },
+        "description": "Premi ghiera: passa al secondo layer"
+      },
+      "keyTopLeft": {
+        "source": "MediaPreviousTrack",
+        "send": "Ctrl+Z",
+        "description": "Tasto alto sinistra"
+      },
+      "keyTopMiddle": {
+        "source": "MediaPlayPause",
+        "send": "Space",
+        "description": "Tasto alto centro"
+      },
+      "keyTopRight": {
+        "source": "MediaNextTrack",
+        "send": "Ctrl+Y",
+        "description": "Tasto alto destra"
+      },
+      "keySideLeftTop": {
+        "source": "Ctrl+V",
+        "send": "Ctrl+V",
+        "description": "Tasto laterale sinistra alto"
+      },
+      "keySideLeftBottom": {
+        "source": "Ctrl+C",
+        "send": "Ctrl+C",
+        "description": "Tasto laterale sinistra basso"
+      },
+      "keySideRightTop": {
+        "source": "Ctrl+Y",
+        "send": "Ctrl+Shift+Z",
+        "description": "Tasto laterale destra alto"
+      },
+      "keySideRightBottom": {
+        "source": "Ctrl+Z",
+        "send": "Ctrl+Z",
+        "description": "Tasto laterale destra basso"
+      }
+    },
+    "knobPressed": {
+      "dialClockwise": {
+        "source": "VolumeUp",
+        "send": "Ctrl+Right",
+        "description": "Seconda ghiera: avanti rapido"
+      },
+      "dialCounterClockwise": {
+        "source": "VolumeDown",
+        "send": "Ctrl+Left",
+        "description": "Seconda ghiera: indietro rapido"
+      },
+      "dialPress": {
+        "source": "VolumeMute",
+        "layer": {
+          "mode": "toggle",
+          "target": "knobPressed",
+          "fallback": "default"
+        },
+        "description": "Premi ghiera: torna al layer default"
+      },
+      "keyTopLeft": {
+        "source": "MediaPreviousTrack",
+        "send": "Shift+R",
+        "description": "Layer 2 tasto alto sinistra"
+      },
+      "keyTopMiddle": {
+        "source": "MediaPlayPause",
+        "send": "Delete",
+        "description": "Layer 2 tasto alto centro"
+      },
+      "keyTopRight": {
+        "source": "MediaNextTrack",
+        "send": "G",
+        "description": "Layer 2 tasto alto destra"
+      },
+      "keySideLeftTop": {
+        "source": "Ctrl+V",
+        "send": "Ctrl+NumpadAdd",
+        "description": "Layer 2 zoom in"
+      },
+      "keySideLeftBottom": {
+        "source": "Ctrl+C",
+        "send": "Ctrl+NumpadSubtract",
+        "description": "Layer 2 zoom out"
+      },
+      "keySideRightTop": {
+        "source": "Ctrl+Y",
+        "send": "Ctrl+Shift+Z",
+        "description": "Layer 2 redo"
+      },
+      "keySideRightBottom": {
+        "source": "Ctrl+Z",
+        "send": "Ctrl+Z",
+        "description": "Layer 2 undo"
+      }
+    }
+  }
+}

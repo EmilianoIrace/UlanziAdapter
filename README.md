@@ -1,0 +1,301 @@
+# UlanziAdapter
+
+Minimal Windows remapper for the **Ulanzi Studio D100H** controller.
+
+UlanziAdapter lets you remap the physical buttons and dial of the D100H from a plain JSON file. It is designed for locked-down work PCs where installing the official Ulanzi software, drivers, or background services is not possible.
+
+> This project is unofficial and is not affiliated with, endorsed by, or supported by Ulanzi.
+
+## What It Does
+
+- Loads button mappings from JSON.
+- Remaps the D100H's 7 physical buttons.
+- Remaps the dial clockwise/counter-clockwise actions.
+- Supports a second layer triggered by pressing the dial.
+- Sends keyboard shortcuts or text using the Windows `SendInput` API.
+- Can start automatically with Windows through the current user's startup registry key.
+- Builds into a self-contained Windows executable.
+
+## Project Status
+
+This is an early driverless implementation.
+
+The app does **not** install a kernel driver, does **not** flash the device firmware, and does **not** write profiles into the D100H. Instead, it listens for the standard keyboard/media events Windows receives from the controller and replaces them with the configured shortcuts.
+
+That makes the app easy to run on restricted machines, but it also has technical limits. See [Known Limitations](#known-limitations).
+
+## Quick Start
+
+1. Download or clone this repository on Windows.
+2. Open PowerShell in the project directory.
+3. Build the executable:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\build.ps1
+```
+
+4. Run the generated executable:
+
+```powershell
+.\artifacts\publish\win-x64\UlanziAdapter.App.exe
+```
+
+On first launch, the app copies the sample config to:
+
+```text
+%AppData%\UlanziAdapter\d100h.json
+```
+
+Edit that JSON file, click **Reload**, and test the device.
+
+## Build From Source
+
+The recommended build command is:
+
+```powershell
+.\build.ps1
+```
+
+If your PowerShell execution policy blocks local scripts:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\build.ps1
+```
+
+The build script:
+
+- checks for the .NET SDK;
+- downloads a local .NET 8 SDK into `.tools\dotnet` if needed;
+- restores packages;
+- builds the solution;
+- publishes a self-contained Windows executable.
+
+Default output:
+
+```text
+artifacts\publish\win-x64\UlanziAdapter.App.exe
+```
+
+Advanced publish options:
+
+```powershell
+.\build\publish-win-x64.ps1 -Runtime win-x64
+.\build\publish-win-x64.ps1 -Runtime win-arm64
+.\build\publish-win-x64.ps1 -Configuration Debug
+.\build\publish-win-x64.ps1 -FrameworkDependent
+.\build\publish-win-x64.ps1 -NoDotNetBootstrap
+```
+
+## Usage
+
+Start `UlanziAdapter.App.exe`.
+
+The UI is intentionally small:
+
+- **Config JSON**: selected mapping file.
+- **Browse**: select another JSON file.
+- **Reload**: reload mappings without restarting the app.
+- **Start / Stop**: enable or disable remapping.
+- **Start with Windows**: register the app in `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`.
+- **Start minimized**: useful when the app launches at login.
+- **Log**: shows detected mappings and runtime errors.
+
+Closing the window hides the app to the tray. Use the tray menu to reopen or exit.
+
+## Configuration
+
+The default sample config is available at:
+
+```text
+config\d100h.sample.json
+```
+
+A binding maps a `source` input from the D100H to an action:
+
+```json
+{
+  "source": "MediaPlayPause",
+  "send": "Space",
+  "description": "Top middle button"
+}
+```
+
+Supported action types:
+
+```json
+{ "send": "Ctrl+Shift+Z" }
+{ "send": "Ctrl+C;Ctrl+V" }
+{ "text": "Hello world" }
+```
+
+Layers are supported. The sample config uses the dial press to toggle a second layer:
+
+```json
+{
+  "source": "VolumeMute",
+  "layer": {
+    "mode": "toggle",
+    "target": "knobPressed",
+    "fallback": "default"
+  }
+}
+```
+
+Layer modes:
+
+- `switch`: move to another layer.
+- `toggle`: toggle between target and fallback.
+- `momentary`: use target while the source key is held.
+
+## Key Names
+
+Common output examples:
+
+```text
+Ctrl+Z
+Ctrl+Shift+Z
+Alt+Tab
+Space
+Delete
+Left
+Right
+Ctrl+Left
+Ctrl+Right
+NumpadAdd
+NumpadSubtract
+```
+
+Known D100H source inputs used by the sample config:
+
+```text
+VolumeUp
+VolumeDown
+VolumeMute
+MediaPreviousTrack
+MediaPlayPause
+MediaNextTrack
+Ctrl+V
+Ctrl+C
+Ctrl+Y
+Ctrl+Z
+```
+
+## Assumed D100H Mapping
+
+The initial sample is based on community-reported D100H input mappings:
+
+| D100H control | Source input |
+| --- | --- |
+| Dial clockwise | `VolumeUp` |
+| Dial counter-clockwise | `VolumeDown` |
+| Dial press | `VolumeMute` |
+| Top left | `MediaPreviousTrack` |
+| Top middle | `MediaPlayPause` |
+| Top right | `MediaNextTrack` |
+| Side left top | `Ctrl+V` |
+| Side left bottom | `Ctrl+C` |
+| Side right top | `Ctrl+Y` |
+| Side right bottom | `Ctrl+Z` |
+
+If your unit emits different inputs on Windows, use the app log to inspect what is being matched, then update the `source` fields in your JSON.
+
+## Known Limitations
+
+UlanziAdapter currently uses a low-level keyboard hook. Windows does not expose the physical device handle through that hook, so suppression is based on the input gesture, not on the exact USB device.
+
+Practical consequence: media keys and volume events are usually safe to remap, but source inputs such as `Ctrl+C` may also match the same shortcut from a normal keyboard while the app is running.
+
+Mitigations:
+
+- keep `suppressOriginalInput` enabled only when needed;
+- avoid mapping common keyboard shortcuts as sources if they conflict with normal typing;
+- set `suppressOriginalInput` to `false` for diagnostic testing;
+- add a future Raw Input or HID provider for per-device handling.
+
+This app also does not replace the official Ulanzi profile editor. It remaps runtime input events; it does not persist mappings into the hardware.
+
+## Configuration Reference
+
+Top-level JSON structure:
+
+```json
+{
+  "version": 1,
+  "device": {
+    "displayName": "Ulanzi Studio D100H",
+    "vendorId": null,
+    "productId": null
+  },
+  "behavior": {
+    "suppressOriginalInput": true,
+    "exactModifierMatch": true,
+    "debounceMs": 10,
+    "defaultLayer": "default"
+  },
+  "startup": {
+    "enabled": false,
+    "startMinimized": true
+  },
+  "bindings": {
+    "default": {}
+  }
+}
+```
+
+Behavior options:
+
+| Field | Description |
+| --- | --- |
+| `suppressOriginalInput` | Blocks the original matched input when possible. |
+| `exactModifierMatch` | Requires exact modifier state for sources such as `Ctrl+C`. |
+| `debounceMs` | Ignores repeated events inside the debounce window. |
+| `defaultLayer` | Layer used when the app starts. |
+
+## Architecture
+
+The codebase is split into three projects:
+
+```text
+src/UlanziAdapter.Core
+src/UlanziAdapter.Windows
+src/UlanziAdapter.App
+```
+
+- `Core`: JSON model, validation, normalized input events, binding engine, layers.
+- `Windows`: Win32 keyboard hook, virtual-key translation, `SendInput`, startup registration.
+- `App`: WinForms UI, tray icon, config loading, runtime wiring.
+
+More detail: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+
+## Roadmap
+
+- Guided capture mode for detecting the next physical button press.
+- Raw Input diagnostics for device VID/PID discovery.
+- Optional HID input provider for cleaner per-device matching.
+- Import/export profiles from the UI.
+- Signed releases through GitHub Actions.
+- Automated tests for config parsing and binding behavior.
+
+## Privacy and Security
+
+UlanziAdapter does not send telemetry and does not require an account.
+
+The app listens to keyboard events locally in order to remap configured inputs. Do not run remapping tools you do not trust, and review the configuration before enabling startup launch.
+
+## Contributing
+
+Contributions are welcome, especially around:
+
+- confirming D100H mappings on different Windows versions;
+- improving per-device input detection;
+- adding tests for the binding engine;
+- improving the UI without making the app heavier.
+
+Before changing behavior, please read:
+
+- [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- [docs/MEMORY.md](docs/MEMORY.md)
+
+## License
+
+No license has been added yet. Until a license is published, all rights are reserved by the repository owner.
